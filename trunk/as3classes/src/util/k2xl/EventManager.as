@@ -4,6 +4,13 @@
  * 		Instead of 		MyObj.addEventListener(Event.ENTER_FRAME, someFunction, false, 0, true)
  * 				do: 	EventManager.addEventListener(MyObj,Event.ENTER_FRAME, someFunction);
  * 
+ * 	NOTES:
+ * 		- Please know that in calling removeAllListeners(), if all of the filter parameters are null, then every single listener will be removed!
+ * 			So make sure if you put in parameters that they are NOT null (unless you want to remove all the listeners from the program) 
+ *  
+ * 	@version 1.3			5/22/09
+ * 		- Added static addEventListeners (author: Dennin Dalke)
+ * 		- Added static variable SHOW_WARNING which warns win all listeners are being removed.
  *  @version 1.23			10/11/08
  * 		- Added cleanUp and cleanUpObject. These methods will check to see if any objects had listeners removed already. For example, weak reference set to true so the object deletes listeners. Or user uses EventDispatcher removeEventListener rather than EventManager's by accident.
  * 		- I'm not sure if hasEventListener is more appropriate in cleanUp than willTrigger, but I'm putting that in for now. 
@@ -34,6 +41,7 @@ package util
 		 * weakKeys set to true (otherwise examples using objects such as timers won't work as expected)
 		 */
 		private static var objectMap:Dictionary = new Dictionary(true);
+		public static var SHOW_WARNING:Boolean = false;
 		public function EventManager()
 		{
 		}
@@ -59,6 +67,26 @@ package util
 			(objectMap[obj][type] as Array).push(listener);
 			//trace(describeType[obj]);
 		}
+		/**
+		 * Adds multiple listeners to function
+		 * @author Dennin Dalke
+		 * @exampleText 
+		 * 	EventManager.addEventListeners( loader.contentLoaderInfo, [
+				ProgressEvent.PROGRESS,	onSiteLoad_Progress,
+				Event.OPEN,				onSiteLoad_Open,
+				Event.COMPLETE,			onSiteLoad_Complete,
+				IOErrorEvent.IO_ERROR,	onSiteLoad_IOError
+			] );
+		 */
+		public static function addEventListeners(obj:IEventDispatcher, eventListeners:Array, useCapture:Boolean=false,priority:int=0, useWeakReference:Boolean=true, actuallyAddListener:Boolean=true):void
+        {
+            for ( var i:int = 0; i < eventListeners.length; i += 2 )
+            {
+                trace( eventListeners[ i ], eventListeners[ i + 1] );
+               
+                addEventListener( obj, eventListeners[ i ] as String, eventListeners[ i + 1] as Function, useCapture, priority, useWeakReference, actuallyAddListener );
+            }
+        }
 		/**
 		 * @param actuallyRemoveListener is similar to actuallyAddListener in addEventListener
 		 */
@@ -102,6 +130,10 @@ package util
 		 */
 		public static function removeAllListeners(objectFilter:IEventDispatcher = null, typeFilter:String = null, functionFilter:Function = null):void
 		{
+			if (SHOW_WARNING && objectFilter==null && typeFilter == null && functionFilter == null)
+			{
+				trace("EventManager warning! A call to removeAllListeners had all null parameters (meaning all listeners are being removed). You might want to check your filters. (Turn off this warning by setting EventManager.SHOW_WARNING to false.)");
+			}
 			for (var obj:Object in objectMap)
 			{
 				if (objectFilter != null) 
